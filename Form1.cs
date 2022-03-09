@@ -12,8 +12,11 @@ using System.IO;
 
 namespace ex5_9
 {
+    
     public partial class frmPublishers : Form
     {
+        string myState;
+        int myBookmark;
         public frmPublishers()
         {
             InitializeComponent();
@@ -70,13 +73,36 @@ namespace ex5_9
 
         private void frmPublishers_FormClosing(object sender, FormClosingEventArgs e)
         {
-            // close the connection
-            booksConnection.Close();
-            // dispose of the objects
-            booksConnection.Dispose();
-            publishersCommand.Dispose();
-            publishersAdapter.Dispose();
-            publishersTable.Dispose();
+            if (myState.Equals("Edit") || myState.Equals("Add"))
+            {
+                MessageBox.Show("You must finish the current edit before stopping the application.", "",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
+                e.Cancel = true;
+            }
+            else
+            {
+                try
+                {
+                    // save changes to the database
+                    SqlCommandBuilder publishersAdapterCommands = new SqlCommandBuilder(publishersAdapter);
+                    publishersAdapter.Update(publishersTable);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show("Error saving database to file: \r\n"
+                        + ex.Message, "Save Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+
+
+
+                // close the connection
+                booksConnection.Close();
+                // dispose of the objects
+                booksConnection.Dispose();
+                publishersCommand.Dispose();
+                publishersAdapter.Dispose();
+                publishersTable.Dispose();
+            }
         }
         private void btnPrevious_Click(object sender, EventArgs e)
         {
@@ -131,6 +157,7 @@ namespace ex5_9
             }
             try
             {
+                publishersManager.RemoveAt(publishersManager.Position);
             }
             catch (Exception)
             {
@@ -140,6 +167,8 @@ namespace ex5_9
 
         private void SetState(string appState)
         {
+            myState = appState;
+
             switch (appState)
             {
                 case "View":
@@ -197,6 +226,8 @@ namespace ex5_9
         {
             try
             {
+                myBookmark = publishersManager.Position;
+                publishersManager.AddNew();
                 SetState("Add");
             }
             catch (Exception ex)
@@ -214,6 +245,10 @@ namespace ex5_9
         private void btnCancel_Click(object sender, EventArgs e)
         {
             publishersManager.CancelCurrentEdit();
+            if (myState.Equals("Add"))
+            {
+                publishersManager.Position = myBookmark;
+            }
             SetState("View");
         }
 
